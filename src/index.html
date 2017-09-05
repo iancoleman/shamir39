@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta charset="utf-8" />
+        <title>Shamir39 - Mnemonic Code Splitter</title>
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <meta content="Split mnemonic codes into sharable parts" name="description"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <meta content="Ian Coleman" name="author" />
+        <link type="image/x-icon" rel="icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII=" />
+
+        <style>
+            body {
+                padding-bottom: 32px;
+            }
+            .form-control[readonly] {
+                cursor: text;
+            }
+            .feedback-container {
+                position: fixed;
+                top: 0;
+                width: 100%;
+                text-align: center;
+                z-index: 4;
+            }
+            .feedback {
+                display: table;
+                padding: 0.5em 1em;
+                background-color: orange;
+                margin: 0 auto;
+                font-size: 2em;
+                color: #444;
+                border: 2px solid #555;
+                border-top: 0;
+                border-bottom-left-radius: 20px 20px;
+                border-bottom-right-radius: 20px 20px;
+            }
+            .split input[type=number] {
+                width: 4em;
+                text-align: right;
+            }
+            input[type=number]::-webkit-outer-spin-button,
+            input[type=number]::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+
+            input[type=number] {
+                -moz-appearance:textfield;
+            }
+            .no-border {
+                border: 0;
+                box-shadow: inset 0 1px 1px rgba(0,0,0,.0);
+                -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.0);
+            }
+            .phrase {
+                word-break: keep-all;
+            }
+            .text-extreme-danger {
+                color: #F00;
+            }
+            .languages a {
+                padding-left: 10px;
+            }
+            .languages a:nth-of-type(1) {
+                margin-left: -12px;
+                padding-left: 0;
+            }
+            textarea.parts {
+                height: 300px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+
+            <div class="text-center text-extreme-danger">
+            <p class="h1">
+            <strong>This is a prototype.</strong>
+            </p>
+            <p class="h2">
+            This tool should only be used for experiments.
+            </p>
+            <p class="h2">
+            There are no alternative implementations, meaning your are
+            <em>totally dependent on this tool</em> if you use it.
+            That is a dangerous situation to be in.
+            </p>
+            <p class="h2">
+                <a href="https://github.com/iancoleman/shamir39/issues">
+                Please share questions, comments and concerns on github
+                </a>
+            </p>
+            </div>
+
+            <hr>
+
+            <h1 class="text-center">Shamir39 Tool</h1>
+            <div class="split row">
+                <div class="col-md-12">
+                    <h2>Split</h2>
+                    <form class="form-horizontal" role="form">
+                        <div class="form-group generate-container">
+                            <label class="col-sm-2 control-label"></label>
+                            <div class="col-sm-10">
+                                <div class="form-inline">
+                                    <div class="input-group-inline">
+                                        <span>Generate a random mnemonic, or enter your own below</span>:
+                                        <button class="btn generate">Generate</button>
+                                        <select id="strength" class="strength form-control">
+                                            <option value="3">3</option>
+                                            <option value="6">6</option>
+                                            <option value="9">9</option>
+                                            <option value="12">12</option>
+                                            <option value="15" selected>15</option>
+                                            <option value="18">18</option>
+                                            <option value="21">21</option>
+                                            <option value="24">24</option>
+                                        </select>
+                                        <span>words</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">Mnemonic Language</label>
+                            <div class="col-sm-10 languages">
+                                <div class="form-control no-border">
+                                    <a href="#english">English</a>
+                                    <a href="#japanese" title="Japanese">日本語</a>
+                                    <a href="#spanish"  title="Spanish">Español</a>
+                                    <a href="#chinese_simplified"  title="Chinese (Simplified)">中文(简体)</a>
+                                    <a href="#chinese_traditional"  title="Chinese (Traditional)">中文(繁體)</a>
+                                    <a href="#french"  title="French">Français</a>
+                                    <a href="#italian"  title="Italian">Italiano</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="split-phrase" class="col-sm-2 control-label">BIP39 Mnemonic</label>
+                            <div class="col-sm-10">
+                                <textarea id="split-phrase" class="phrase form-control"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">Split Parameters</label>
+                            <div class="col-sm-10">
+                                <div class="form-inline">
+                                    <span>Allow reconstruction with</span>
+                                    <input value="3" type="number" min="2" max="4095" class="parameter-m form-control">
+                                    <span>of</span>
+                                    <input value="5" type="number" min="2" max="4095" class="parameter-n form-control">
+                                    <span>parts.</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="split-parts" class="col-sm-2 control-label">Shamir39 Shares</label>
+                            <div class="col-sm-10">
+                                <textarea id="split-parts" class="parts form-control" readonly></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="combine row">
+                <div class="col-md-12">
+                    <h2>Combine</h2>
+                    <form class="form-horizontal" role="form">
+                        <div class="form-group">
+                            <label for="combine-parts" class="col-sm-2 control-label">Shamir39 Shares</label>
+                            <div class="col-sm-10">
+                                <textarea id="combine-parts" class="parts form-control"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="combine-phrase" class="col-sm-2 control-label">BIP39 Mnemonic</label>
+                            <div class="col-sm-10">
+                                <textarea id="combine-phrase" class="phrase form-control" readonly></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>More Info</h2>
+                    <h3>Shamir39 <span class="small">Draft Specification</span></h3>
+                    <p>
+                        Read more about how Shamir Mnemonics are encoded and decoded in the
+                        <a href="https://github.com/iancoleman/shamir39/blob/master/specification.md" target="_blank">Draft Shamir39 Specification</a>.
+                    </p>
+                    <p>
+                        The specification is open to feedback.
+                        Feedback can be provided by raising a new issue in the
+                        <a href="https://github.com/iancoleman/shamir39/issues" target="_blank">github repostiory iancoleman/shamir39</a>.
+                    </p>
+                    <h3>BIP39 <span class="small">Mnemonic code for generating deterministic keys</span></h3>
+                    <p>
+                        Read more at the
+                        <a href="https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki">official BIP39 spec</a>
+                    </p>
+                    <h3>Shamir's Secret Sharing Scheme</h3>
+                    <p>
+                        Read more
+                        <a href="https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing">on wikipedia</a>.
+                    </p>
+                    <p>
+                        This page uses a custom implementation of SSSS based on
+                        <a href="https://github.com/amper5and/secrets.js/" target="_blank">amper5and/secrets.js</a>.
+                    </p>
+                    <p>
+                        The implementation used on this page can be found in
+                        <a href="https://github.com/iancoleman/bip39/blob/master/src/js/shamir39.js" target="_blank">Shamir39 Library</a>
+                        (currently under active development).
+                    </p>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="row">
+                <div class="col-md-12">
+
+                    <h2>Offline Usage</h2>
+
+                    <p>
+                    You can use this tool without having to be online.
+                    </p>
+                    <p>
+                    In your browser, select file save-as, and save this page
+                    as a file.
+                    </p>
+                    <p>
+                    Double-click that file to open it in a browser
+                    on any offline computer.
+                    </p>
+                    <p>
+                    <span>Alternatively, download the file from the repository</span>
+                    -
+                    <a href="https://github.com/iancoleman/shamir39">https://github.com/iancoleman/shamir39</a>
+                    </p>
+
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="row">
+                <div class="col-md-12">
+
+                    <h2>This project is 100% open-source code</h2>
+
+                    <p>
+                        <span>Get the source code from the repository</span>
+                        -
+                        <a href="https://github.com/iancoleman/shamir39" target="_blank">
+                            https://github.com/iancoleman/shamir39
+                        </a>
+                    </p>
+
+                    <h3>Libraries</h3>
+
+                    <p>
+                        <span>Shamir39 Library (under development) - </span>
+                        <a href="https://github.com/iancoleman/bip39/blob/master/src/js/shamir39.js" target="_blank">
+                            https://github.com/iancoleman/shamir39/blob/master/src/js/shamir39.js
+                        </a>
+                    </p>
+
+                    <p>
+                        <span>jsBIP39 - </span>
+                        <a href="https://github.com/iancoleman/jsbip39" target="_blank">
+                            https://github.com/iancoleman/jsbip39
+                        </a>
+                    </p>
+
+                    <p>
+                        <span>sjcl - </span>
+                        <a href="https://github.com/bitwiseshiftleft/sjcl" target="_blank">
+                            https://github.com/bitwiseshiftleft/sjcl
+                        </a>
+                    </p>
+
+                    <p>
+                        <span>jQuery - </span>
+                        <a href="https://jquery.com/" target="_blank">
+                            https://jquery.com/
+                        </a>
+                    </p>
+
+                    <p>
+                        <span>Twitter Bootstrap - </span>
+                        <a href="http://getbootstrap.com/" target="_blank">
+                            http://getbootstrap.com/
+                        </a>
+                    </p>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="feedback-container">
+            <div class="feedback">Loading...</div>
+        </div>
+
+        <script src="js/unorm.js"></script>
+        <script src="js/jquery.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/levenshtein.js"></script>
+        <script src="js/shamir39.js"></script>
+        <script src="js/sjcl-bip39.js"></script>
+        <script src="js/wordlist_english.js"></script>
+        <script src="js/wordlist_japanese.js"></script>
+        <script src="js/wordlist_spanish.js"></script>
+        <script src="js/wordlist_chinese_simplified.js"></script>
+        <script src="js/wordlist_chinese_traditional.js"></script>
+        <script src="js/wordlist_french.js"></script>
+        <script src="js/wordlist_italian.js"></script>
+        <script src="js/jsbip39.js"></script>
+        <script src="js/biginteger.js"></script>
+        <script src="js/index.js"></script>
+    </body>
+</html>
