@@ -73,11 +73,17 @@
             textarea.parts {
                 height: 300px;
             }
+            .version {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+            }
         </style>
     </head>
     <body>
         <div class="container">
 
+            <p class="version">Version: Prototype-1</p>
             <div class="text-center text-extreme-danger">
             <p class="h1">
             <strong>This is a prototype.</strong>
@@ -95,6 +101,41 @@
                 Please share questions, comments and concerns on github
                 </a>
             </p>
+            </div>
+            <div>
+            <h3>
+            Changelog
+            </h3>
+            <p>
+            Prototype-1
+            </p>
+            <ul>
+                <li>
+                    <strong>Breaking Change</strong>
+                    Change bits for shamir shares from 12 to 11.
+                    See
+                    <a href="https://github.com/iancoleman/shamir39/issues/2">
+                        https://github.com/iancoleman/shamir39/issues/2
+                    </a>
+                </li>
+                <li>
+                    Change version word from shamir39 to shamir39-p1
+                </li>
+                <li>
+                    Add version text
+                </li>
+            </ul>
+            <p>
+            Initial Unversioned Release
+            </p>
+            <ul>
+                <li>
+                    Available on
+                    <a href="https://web.archive.org/web/20170911001146/iancoleman.github.io/shamir39">
+                        archive.org
+                    </a>
+                </li>
+            </ul>
             </div>
 
             <hr>
@@ -151,9 +192,9 @@
                             <div class="col-sm-10">
                                 <div class="form-inline">
                                     <span>Allow reconstruction with</span>
-                                    <input value="3" type="number" min="2" max="4095" class="parameter-m form-control">
+                                    <input value="3" type="number" min="2" max="2043" class="parameter-m form-control">
                                     <span>of</span>
-                                    <input value="5" type="number" min="2" max="4095" class="parameter-n form-control">
+                                    <input value="5" type="number" min="2" max="2043" class="parameter-n form-control">
                                     <span>parts.</span>
                                 </div>
                             </div>
@@ -983,7 +1024,7 @@ if("undefined"==typeof jQuery)throw new Error("Bootstrap's JavaScript requires j
 </script>
         <script>Shamir39 = function() {
 
-    var VERSION = "shamir39";
+    var VERSION = "shamir39-p1";
 
     // Splits a BIP39 mnemonic into Shamir39 mnemonics.
     // No validation is done on the bip39 words.
@@ -1724,7 +1765,7 @@ if("undefined"==typeof jQuery)throw new Error("Bootstrap's JavaScript requires j
         return out;
     };
 
-    init(12); // 12 bits = 4096-1 shares maximum
+    init(11); // 11 bits = 2048-1 shares maximum
 
 }
 </script>
