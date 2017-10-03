@@ -1,6 +1,6 @@
 Shamir39 = function() {
 
-    var VERSION = "shamir39";
+    var VERSION = "shamir39-p1";
 
     // Splits a BIP39 mnemonic into Shamir39 mnemonics.
     // No validation is done on the bip39 words.
@@ -741,6 +741,6 @@ Shamir39 = function() {
         return out;
     };
 
-    init(12); // 12 bits = 4096-1 shares maximum
+    init(11); // 11 bits = 2048-1 shares maximum
 
 }
