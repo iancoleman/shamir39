@@ -227,6 +227,14 @@
                                 <textarea id="split-parts" class="parts form-control" readonly></textarea>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label for="split-parts" class="col-sm-2 control-label">Testing</label>
+                            <div class="col-sm-10">
+                                <p>Clicking the button will test that the mnemonic can be recovered from the shares above.</p>
+                                <p>Note that this test can take a <strong>very, very long time</strong> if you generate more than a handful of shares, since it exhaustively tests that all combinations of shares produce the desired result.</p>
+                                <a class="btn btn-primary btn-test disabled">Click to test</a>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -1057,6 +1065,11 @@ if("undefined"==typeof jQuery)throw new Error("Bootstrap's JavaScript requires j
                 error: "Must require at least 2 shares"
             };
         }
+        if (m > n) {
+            return {
+                error: "Must require at most " + n + " shares"
+            };
+        }
         if (m > 4095) {
             return {
                 error: "Must require at most 4095 shares"
@@ -1136,6 +1149,9 @@ if("undefined"==typeof jQuery)throw new Error("Bootstrap's JavaScript requires j
 
     // Combines Shamir39 mnemonics into a BIP39 mnemonic
     this.combine = function(parts, wordlist) {
+        // pre-sort (speeds up testing, no need to consider order of shares)
+        sortMnemonicArrayInPlace(parts);
+
         // convert parts to hex
         var hexParts = [];
         var requiredParts = -1;
@@ -1786,6 +1802,43 @@ if("undefined"==typeof jQuery)throw new Error("Bootstrap's JavaScript requires j
         }
         return out;
     };
+
+    function sortMnemonicArrayInPlace(parts) {
+        parts.sort(function(a, b) {
+            if(a.length != b.length){
+                return a.length - b.length;
+            }
+            for(var i=0; i<a.length; i++) {
+                if(a[i] != b[i]){
+                    return a[i] < b [i] ? -1 : 1;
+                }
+            }
+            return 0;
+        });
+    }
+
+    var self = this;
+    this.testCombine = function(mnemonics, wordlist, callback) {
+        function _test(carry, candidates) {
+            if(candidates.length == 0){
+                if(carry.length > 0)
+                    callback(carry, self.combine(carry, wordlist));
+                return;
+            }
+
+            // recurse with and without current share
+            var current = candidates.shift();
+            _test(carry, candidates)
+            carry.push(current);
+            _test(carry, candidates);
+
+            // restore variables so we preserve state for caller
+            current = candidates.unshift(current)
+            carry.pop();
+        }
+
+        _test([], mnemonics);
+    }
 
     init(11); // 11 bits = 2048-1 shares maximum
 
@@ -6175,6 +6228,7 @@ exports.BigInteger = BigInteger;
     DOM.generate = $(".generate");
     DOM.languages = $(".languages a");
     DOM.feedback = $(".feedback");
+    DOM.testButton = $(".btn-test");
 
     function init() {
         // Events
@@ -6184,6 +6238,7 @@ exports.BigInteger = BigInteger;
         DOM.generate.on("click", generateClicked);
         DOM.languages.on("click", languageChanged);
         DOM.combineParts.on("input", combinePartsChanged);
+        DOM.testButton.on("click", testShares);
         disableForms();
         clearDisplay();
     }
@@ -6256,8 +6311,10 @@ exports.BigInteger = BigInteger;
         var parts = shamir39.split(words, wordlist, m, n);
         if ("error" in parts) {
             DOM.splitParts.val(parts.error);
+            DOM.testButton.addClass('disabled');
             return;
         }
+        DOM.testButton.removeClass('disabled');
         // Convert mnemonics into phrases
         var mnemonics = parts.mnemonics;
         for (var i=0; i<mnemonics.length; i++) {
@@ -6267,8 +6324,7 @@ exports.BigInteger = BigInteger;
         DOM.splitParts.val(partsStr);
     }
 
-    function showCombinedPhrase(partsStr) {
-        // extract parts from string
+    function stringToParts(partsStr) {
         var partsDirty = partsStr.split("\n");
         var parts = [];
         for (var i=0; i<partsDirty.length; i++) {
@@ -6278,13 +6334,24 @@ exports.BigInteger = BigInteger;
                 parts.push(part);
             }
         }
-        // convert phrases to word arrays
+
+        return parts;
+    }
+
+    function partsToWordArrays(parts) {
         var mnemonics = [];
         for (var i=0; i<parts.length; i++) {
             var part = parts[i];
             var mnemonic = phraseToWordArray(part);
             mnemonics.push(mnemonic);
         }
+        return mnemonics;
+    }
+
+    function showCombinedPhrase(partsStr) {
+        var parts = stringToParts(partsStr);
+        var mnemonics = partsToWordArrays(parts);
+
         // combine the phrases into the original mnemonic
         var language = getLanguage(parts[0]);
         var wordlist = WORDLISTS[language];
@@ -6516,6 +6583,70 @@ exports.BigInteger = BigInteger;
             phrase = words.join("\u3000");
         }
         return phrase;
+    }
+
+    function testShares() {
+        showValidationError('Testing, please wait...')
+        setTimeout(_testShares, 50);
+    }
+
+    function _testShares() {
+        var partsStr = DOM.splitParts.val();
+        var parts = stringToParts(partsStr);
+        var mnemonics = partsToWordArrays(parts);
+
+        var m = parseInt(DOM.parameterM.val());
+        var n = parseInt(DOM.parameterN.val());
+        var language = getLanguage(parts[0]);
+        var wordlist = WORDLISTS[language];
+
+        // parse original phrase and re-convert to string for ease of comparison
+        var originalPhrase = phraseToWordArray(DOM.splitPhrase.val()).join(' ');
+
+        var ok = true;
+        var numSolutions = 0;
+        shamir39.testCombine(mnemonics, wordlist, function(usedMnemonics, solution) {
+            if (usedMnemonics.length < m) {
+                if (solution.error === undefined) {
+                    ok = false;
+                    console.log('I should get an error by using only ' +
+                        usedMnemonics.length + ' mnemonics, but got', solution)
+                }
+                /* else OK - didn't find a solution when it wasn't expected */
+            }
+            else {
+                if (solution.mnemonic === undefined) {
+                    ok = false;
+                    console.log('I did not get a mnemonic but an error:', solution);
+                }
+                else if (solution.mnemonic.join(' ') !== originalPhrase) {
+                    ok = false;
+                    console.log('I did not get the original mnemonic but', solution);
+                }
+                else { /* OK - found a solution and was valid */
+                    numSolutions++;
+                }
+            }
+        });
+
+        function factorial(x) {
+            var result = (x == 0 ? 1 : x);
+            while (--x > 1) {
+                result *= x;
+            }
+            return result;
+        }
+        var desiredSolutions = 0;
+        for (var i=m; i<=n; i++) { /* combinations of m..n elements out of n */
+            desiredSolutions += factorial(n) / (factorial(i)*factorial(n-i));
+        }
+
+        console.log('I expected to find', desiredSolutions, 'solutions, found', numSolutions);
+        if (numSolutions != desiredSolutions) {
+            ok = false;
+        }
+
+        showValidationError(ok ? 'Test Succeeded!' : 'Test Failed');
     }
 
     init();

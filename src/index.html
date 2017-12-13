@@ -223,6 +223,14 @@
                                 <textarea id="split-parts" class="parts form-control" readonly></textarea>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label for="split-parts" class="col-sm-2 control-label">Testing</label>
+                            <div class="col-sm-10">
+                                <p>Clicking the button will test that the mnemonic can be recovered from the shares above.</p>
+                                <p>Note that this test can take a <strong>very, very long time</strong> if you generate more than a handful of shares, since it exhaustively tests that all combinations of shares produce the desired result.</p>
+                                <a class="btn btn-primary btn-test disabled">Click to test</a>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
