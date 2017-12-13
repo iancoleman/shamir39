@@ -11,6 +11,11 @@ Shamir39 = function() {
                 error: "Must require at least 2 shares"
             };
         }
+        if (m > n) {
+            return {
+                error: "Must require at most " + n + " shares"
+            };
+        }
         if (m > 4095) {
             return {
                 error: "Must require at most 4095 shares"
@@ -90,6 +95,9 @@ Shamir39 = function() {
 
     // Combines Shamir39 mnemonics into a BIP39 mnemonic
     this.combine = function(parts, wordlist) {
+        // pre-sort (speeds up testing, no need to consider order of shares)
+        sortMnemonicArrayInPlace(parts);
+
         // convert parts to hex
         var hexParts = [];
         var requiredParts = -1;
@@ -740,6 +748,43 @@ Shamir39 = function() {
         }
         return out;
     };
+
+    function sortMnemonicArrayInPlace(parts) {
+        parts.sort(function(a, b) {
+            if(a.length != b.length){
+                return a.length - b.length;
+            }
+            for(var i=0; i<a.length; i++) {
+                if(a[i] != b[i]){
+                    return a[i] < b [i] ? -1 : 1;
+                }
+            }
+            return 0;
+        });
+    }
+
+    var self = this;
+    this.testCombine = function(mnemonics, wordlist, callback) {
+        function _test(carry, candidates) {
+            if(candidates.length == 0){
+                if(carry.length > 0)
+                    callback(carry, self.combine(carry, wordlist));
+                return;
+            }
+
+            // recurse with and without current share
+            var current = candidates.shift();
+            _test(carry, candidates)
+            carry.push(current);
+            _test(carry, candidates);
+
+            // restore variables so we preserve state for caller
+            current = candidates.unshift(current)
+            carry.pop();
+        }
+
+        _test([], mnemonics);
+    }
 
     init(11); // 11 bits = 2048-1 shares maximum
 

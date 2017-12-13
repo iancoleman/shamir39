@@ -20,6 +20,7 @@
     DOM.generate = $(".generate");
     DOM.languages = $(".languages a");
     DOM.feedback = $(".feedback");
+    DOM.testButton = $(".btn-test");
 
     function init() {
         // Events
@@ -29,6 +30,7 @@
         DOM.generate.on("click", generateClicked);
         DOM.languages.on("click", languageChanged);
         DOM.combineParts.on("input", combinePartsChanged);
+        DOM.testButton.on("click", testShares);
         disableForms();
         clearDisplay();
     }
@@ -101,8 +103,10 @@
         var parts = shamir39.split(words, wordlist, m, n);
         if ("error" in parts) {
             DOM.splitParts.val(parts.error);
+            DOM.testButton.addClass('disabled');
             return;
         }
+        DOM.testButton.removeClass('disabled');
         // Convert mnemonics into phrases
         var mnemonics = parts.mnemonics;
         for (var i=0; i<mnemonics.length; i++) {
@@ -112,8 +116,7 @@
         DOM.splitParts.val(partsStr);
     }
 
-    function showCombinedPhrase(partsStr) {
-        // extract parts from string
+    function stringToParts(partsStr) {
         var partsDirty = partsStr.split("\n");
         var parts = [];
         for (var i=0; i<partsDirty.length; i++) {
@@ -123,13 +126,24 @@
                 parts.push(part);
             }
         }
-        // convert phrases to word arrays
+
+        return parts;
+    }
+
+    function partsToWordArrays(parts) {
         var mnemonics = [];
         for (var i=0; i<parts.length; i++) {
             var part = parts[i];
             var mnemonic = phraseToWordArray(part);
             mnemonics.push(mnemonic);
         }
+        return mnemonics;
+    }
+
+    function showCombinedPhrase(partsStr) {
+        var parts = stringToParts(partsStr);
+        var mnemonics = partsToWordArrays(parts);
+
         // combine the phrases into the original mnemonic
         var language = getLanguage(parts[0]);
         var wordlist = WORDLISTS[language];
@@ -361,6 +375,70 @@
             phrase = words.join("\u3000");
         }
         return phrase;
+    }
+
+    function testShares() {
+        showValidationError('Testing, please wait...')
+        setTimeout(_testShares, 50);
+    }
+
+    function _testShares() {
+        var partsStr = DOM.splitParts.val();
+        var parts = stringToParts(partsStr);
+        var mnemonics = partsToWordArrays(parts);
+
+        var m = parseInt(DOM.parameterM.val());
+        var n = parseInt(DOM.parameterN.val());
+        var language = getLanguage(parts[0]);
+        var wordlist = WORDLISTS[language];
+
+        // parse original phrase and re-convert to string for ease of comparison
+        var originalPhrase = phraseToWordArray(DOM.splitPhrase.val()).join(' ');
+
+        var ok = true;
+        var numSolutions = 0;
+        shamir39.testCombine(mnemonics, wordlist, function(usedMnemonics, solution) {
+            if (usedMnemonics.length < m) {
+                if (solution.error === undefined) {
+                    ok = false;
+                    console.log('I should get an error by using only ' +
+                        usedMnemonics.length + ' mnemonics, but got', solution)
+                }
+                /* else OK - didn't find a solution when it wasn't expected */
+            }
+            else {
+                if (solution.mnemonic === undefined) {
+                    ok = false;
+                    console.log('I did not get a mnemonic but an error:', solution);
+                }
+                else if (solution.mnemonic.join(' ') !== originalPhrase) {
+                    ok = false;
+                    console.log('I did not get the original mnemonic but', solution);
+                }
+                else { /* OK - found a solution and was valid */
+                    numSolutions++;
+                }
+            }
+        });
+
+        function factorial(x) {
+            var result = (x == 0 ? 1 : x);
+            while (--x > 1) {
+                result *= x;
+            }
+            return result;
+        }
+        var desiredSolutions = 0;
+        for (var i=m; i<=n; i++) { /* combinations of m..n elements out of n */
+            desiredSolutions += factorial(n) / (factorial(i)*factorial(n-i));
+        }
+
+        console.log('I expected to find', desiredSolutions, 'solutions, found', numSolutions);
+        if (numSolutions != desiredSolutions) {
+            ok = false;
+        }
+
+        showValidationError(ok ? 'Test Succeeded!' : 'Test Failed');
     }
 
     init();
