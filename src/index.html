@@ -45,6 +45,10 @@
                 margin: 0;
             }
 
+            input[type=password] {
+                height: 50px;
+            }
+
             input[type=number] {
                 -moz-appearance:textfield;
             }
@@ -202,7 +206,9 @@
                         <div class="form-group">
                             <label for="split-phrase" class="col-sm-2 control-label">BIP39 Mnemonic</label>
                             <div class="col-sm-10">
-                                <textarea id="split-phrase" class="phrase form-control"></textarea>
+                                <input type="password" id="split-phrase" class="phrase form-control" cols="10"></input>
+                                <br>
+                                <input type="checkbox" onclick="mnemonicToggle()"> Show Mnemonic 
                             </div>
                         </div>
                         <div class="form-group">
