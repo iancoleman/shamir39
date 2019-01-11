@@ -366,3 +366,12 @@
     init();
 
 })();
+
+function mnemonicToggle() {
+  var x = document.getElementById("split-phrase");
+  if (x.type === "password") {
+    x.type = "text";
+  } else {
+    x.type = "password";
+  }
+} 
