@@ -41,7 +41,10 @@ for style in styles:
 
 # Write the standalone file
 
-f = open('standalone.html', 'w', encoding="utf-8")
+if not os.path.exists('./docs'):
+    os.makedirs('./docs')
+
+f = open('./docs/index.html', 'w', encoding="utf-8")
 f.write(page)
 f.close()
 
